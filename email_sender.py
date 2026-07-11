@@ -1,14 +1,7 @@
 import smtplib
 from email.message import EmailMessage
 
-
-def send_email(
-    sender_email,
-    app_password,
-    receiver_email,
-    subject,
-    message
-):
+def send_email(sender_email, app_password, receiver_email, subject, message):
 
     msg = EmailMessage()
 
@@ -18,13 +11,7 @@ def send_email(
 
     msg.set_content(message)
 
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-
-    server.starttls()
-
-    server.login(sender_email, app_password)
-
-    server.send_message(msg)
-
-    server.quit()
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(sender_email, app_password)
+        server.send_message(msg)

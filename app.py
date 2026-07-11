@@ -1,53 +1,43 @@
 import pandas as pd
 from email_sender import send_email
-from datetime import datetime
-import csv
 from dotenv import load_dotenv
 import os
 
-
-
-students = pd.read_csv("students.csv")
 load_dotenv()
 
 sender_email = os.getenv("EMAIL")
 app_password = os.getenv("APP_PASSWORD")
 
-with open("email_log.csv", "w", newline="") as file:
+students = pd.read_csv("students.csv")
 
-    writer = csv.writer(file)
+subject = "Welcome"
 
-    writer.writerow(["Name", "Email", "Status", "Time"])
+for index, row in students.iterrows():
 
+    name = row["name"]
+    email = row["email"]
 
-    for index, row in students.iterrows():
+    message = f"""
+Hello {name},
 
-        name = row["name"]
-        email = row["email"]
+This is a test email sent from my Email Automation System.
 
-        try:
+Thank you.
 
-            send_email(
-                sender_email,
-                app_password,
-                email,
-                name
-            )
+Regards,
+Catherine Jenila
+"""
 
-            status = "Sent"
-
-
-        except Exception as e:
-
-            status = "Failed"
-
-
-        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-        writer.writerow(
-            [name, email, status, time]
+    try:
+        send_email(
+            sender_email,
+            app_password,
+            email,
+            subject,
+            message
         )
 
+        print(f"{name} : Sent")
 
-        print(name, status)
+    except Exception as e:
+        print(f"{name} : Failed - {e}")

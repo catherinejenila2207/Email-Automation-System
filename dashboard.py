@@ -1,6 +1,6 @@
-from email_sender import send_email
 import streamlit as st
 import pandas as pd
+from email_sender import send_email
 from dotenv import load_dotenv
 import os
 
@@ -10,56 +10,92 @@ load_dotenv()
 sender_email = os.getenv("EMAIL")
 app_password = os.getenv("APP_PASSWORD")
 
+st.set_page_config(page_title="Email Automation System", page_icon="📧")
+
 st.title("📧 Email Automation System")
 
 uploaded_file = st.file_uploader(
     "Upload Student CSV",
-    type="csv"
+    type=["csv"]
 )
 
 if uploaded_file is not None:
 
-    students = pd.read_csv(uploaded_file)
+    try:
+        students = pd.read_csv(uploaded_file)
 
-    st.success("CSV uploaded successfully!")
-    st.dataframe(students)
+        st.success("✅ CSV uploaded successfully")
 
-    subject = st.text_input("Email Subject")
+        st.dataframe(students)
 
-    message = st.text_area("Email Message")
+        # Check required columns
+        if "name" not in students.columns or "email" not in students.columns:
+            st.error("CSV must contain 'name' and 'email' columns.")
+            st.stop()
 
-    st.write("### Preview")
+        subject = st.text_input(
+            "Email Subject",
+            value="Welcome"
+        )
 
-    if len(students) > 0:
-        name = students.iloc[0]["name"]
-        preview = message.replace("{name}", name)
+        message = st.text_area(
+            "Email Message",
+            value="""Hello {name},
+
+Welcome!
+
+This email was sent using my Email Automation System.
+
+Regards,
+Catherine Jenila"""
+        )
+
+        st.subheader("Preview")
+
+        preview = message.replace(
+            "{name}",
+            students.iloc[0]["name"]
+        )
+
         st.info(preview)
 
-    if st.button("Send Emails"):
+        if st.button("📨 Send Emails"):
 
-        if not sender_email or not app_password:
-            st.error("EMAIL or APP_PASSWORD is missing.")
-        else:
-            for index, row in students.iterrows():
+            if not sender_email or not app_password:
+                st.error("EMAIL or APP_PASSWORD is missing.")
+                st.stop()
 
-                name = row["name"]
-                email = row["email"]
+            progress = st.progress(0)
 
-                personalized_message = message.replace(
-                    "{name}",
-                    name
-                )
+            total = len(students)
+
+            for i, row in students.iterrows():
 
                 try:
+
+                    personalized_message = message.replace(
+                        "{name}",
+                        row["name"]
+                    )
+
                     send_email(
                         sender_email,
                         app_password,
-                        email,
+                        row["email"],
                         subject,
                         personalized_message
                     )
 
-                    st.success(f"✅ Email sent to {name}")
+                    st.success(f"✅ Email sent to {row['name']}")
 
                 except Exception as e:
-                    st.error(f"❌ Failed for {name}: {e}")
+
+                    st.error(f"❌ Failed for {row['name']}: {e}")
+
+                progress.progress((i + 1) / total)
+
+            st.balloons()
+            st.success("🎉 All emails processed!")
+
+    except Exception as e:
+        st.error(f"Error reading CSV: {e}")
