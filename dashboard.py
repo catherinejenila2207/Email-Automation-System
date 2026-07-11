@@ -1,16 +1,15 @@
 import streamlit as st
 import pandas as pd
 from email_sender import send_email
-from dotenv import load_dotenv
-import os
 
-# Load environment variables
-load_dotenv()
+# Read secrets from Streamlit Cloud
+sender_email = st.secrets["EMAIL"]
+app_password = st.secrets["APP_PASSWORD"]
 
-sender_email = os.getenv("EMAIL")
-app_password = os.getenv("APP_PASSWORD")
-
-st.set_page_config(page_title="Email Automation System", page_icon="📧")
+st.set_page_config(
+    page_title="Email Automation System",
+    page_icon="📧"
+)
 
 st.title("📧 Email Automation System")
 
@@ -19,19 +18,17 @@ uploaded_file = st.file_uploader(
     type=["csv"]
 )
 
-if uploaded_file is not None:
+if uploaded_file:
 
     try:
         students = pd.read_csv(uploaded_file)
 
-        st.success("✅ CSV uploaded successfully")
-
-        st.dataframe(students)
-
-        # Check required columns
         if "name" not in students.columns or "email" not in students.columns:
             st.error("CSV must contain 'name' and 'email' columns.")
             st.stop()
+
+        st.success("CSV Uploaded Successfully!")
+        st.dataframe(students)
 
         subject = st.text_input(
             "Email Subject",
@@ -47,23 +44,20 @@ Welcome!
 This email was sent using my Email Automation System.
 
 Regards,
-Catherine Jenila"""
+Catherine Jenila
+"""
         )
 
         st.subheader("Preview")
 
-        preview = message.replace(
-            "{name}",
-            students.iloc[0]["name"]
+        st.info(
+            message.replace(
+                "{name}",
+                students.iloc[0]["name"]
+            )
         )
 
-        st.info(preview)
-
         if st.button("📨 Send Emails"):
-
-            if not sender_email or not app_password:
-                st.error("EMAIL or APP_PASSWORD is missing.")
-                st.stop()
 
             progress = st.progress(0)
 
@@ -71,12 +65,12 @@ Catherine Jenila"""
 
             for i, row in students.iterrows():
 
-                try:
+                personalized_message = message.replace(
+                    "{name}",
+                    row["name"]
+                )
 
-                    personalized_message = message.replace(
-                        "{name}",
-                        row["name"]
-                    )
+                try:
 
                     send_email(
                         sender_email,
@@ -86,16 +80,20 @@ Catherine Jenila"""
                         personalized_message
                     )
 
-                    st.success(f"✅ Email sent to {row['name']}")
+                    st.success(
+                        f"✅ Email sent to {row['name']}"
+                    )
 
                 except Exception as e:
 
-                    st.error(f"❌ Failed for {row['name']}: {e}")
+                    st.error(
+                        f"❌ Failed for {row['name']}: {e}"
+                    )
 
                 progress.progress((i + 1) / total)
 
             st.balloons()
-            st.success("🎉 All emails processed!")
+            st.success("🎉 All Emails Sent!")
 
     except Exception as e:
-        st.error(f"Error reading CSV: {e}")
+        st.error(e)
